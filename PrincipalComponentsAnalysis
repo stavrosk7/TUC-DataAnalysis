@@ -1,0 +1,331 @@
+%Principal Components Analysis
+%Atsalakis George  16/2/2009
+
+
+
+%%
+% Comparison of Factor Analysis and Principal Components Analysis
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%There is a good deal of overlap in terminology and goals between principal
+% components analysis (PCA) and factor analysis (FA). Much of the literature
+% on the two methods does not distinguish between them, and some algorithms
+% for fitting the FA model involve PCA. Both are dimension-reduction techniques,
+% in the sense that they can be used to replace a large set of observed variables
+% with a smaller set of new variables. However, the two methods are different
+% in their goals and in their underlying models. Roughly speaking, you should
+% use PCA when you simply need to summarize or approximate your data using fewer
+% dimensions (to visualize it, for example), and you should use FA when you
+% need an explanatory model for the correlations among your data.
+
+
+
+close all  %clean the workspace
+clear
+clc
+
+tic
+%Example: Principal Components Analysis
+% Consider a sample application that uses nine different indices of the
+% quality of life in 329 U.S. cities. These are climate, housing, health, crime,
+% transportation, education, arts, recreation, and economics. For each index,
+% higher is better. For example, a higher index for crime means a lower crime
+% rate.Start by loading the data in cities.mat.
+
+load cities
+whos
+
+% Name             Size         Bytes  Class
+%   categories       9x14           252  char array
+%   names          329x43         28294  char array
+%   ratings        329x9          23688  double array
+
+%The whos command generates a
+% table of information about all the variables in the workspace. The cities data set contains three variables: categories, a string matrix containing
+% the names of the indicesnames, a string matrix containing the 329
+% city namesratings, the data matrix with 329 rows
+% and 9 columns
+%The categories variable has the following values:
+
+categories
+
+% categories =
+%    climate       
+%    housing       
+%    health        
+%    crime         
+%    transportation
+%    education     
+%    arts          
+%    recreation    
+%    economics
+
+%The first five rows of names are
+
+first5 = names(1:5,:)
+
+% first5 =
+%    Abilene, TX      
+%    Akron, OH        
+%    Albany, GA       
+%    Albany-Troy, NY  
+%    Albuquerque, NM
+%To get a quick impression of the ratings data, make a box plot.
+
+figure(10)
+boxplot(ratings,'orientation','horizontal','labels',categories)
+
+%This command generates the plot below. Note that there is substantially
+% more variability in the ratings of the arts and housing than in the ratings
+% of crime and climate.
+
+% Ordinarily you might also graph pairs of the original variables, but
+% there are 36 two-variable plots. 
+%Perhaps principal components
+% analysis can reduce the number of variables you need to consider.Sometimes it makes sense to compute principal components for raw data.
+% This is appropriate when all the variables are in the same units. Standardizing
+% the data is often preferable when the variables are in different units or
+% when the variance of the different columns is substantial (as in this case). 
+% 
+% You can standardize the data by dividing each column by its standard deviation.
+
+stdr = std(ratings);
+sr = ratings./repmat(stdr,329,1);
+
+%Now you are ready to find the principal components.
+
+[coefs,scores,variances,t2] = princomp(sr);
+
+
+
+%The following sections explain the four outputs from princomp.
+%%
+% The Principal Component Coefficients (First Output)
+%%
+%The first output of the princomp function, coefs,
+% contains the coefficients for nine principal components. These are the linear
+% combinations of the original variables that generate the new variables.The first three principal component coefficient vectors are
+
+c3 = coefs(:,1:3)
+% c3 =
+%     0.2064    0.2178   -0.6900
+%     0.3565    0.2506   -0.2082
+%     0.4602   -0.2995   -0.0073
+%     0.2813    0.3553    0.1851
+%     0.3512   -0.1796    0.1464
+%     0.2753   -0.4834    0.2297
+%     0.4631   -0.1948   -0.0265
+%     0.3279    0.3845   -0.0509
+%     0.1354    0.4713    0.6073
+%     
+%     The largest coefficients in the first column (first principal component)
+% are the third and seventh elements, corresponding to the variables health and arts.
+% All the coefficients of the first principal component have the same sign,
+% making it a weighted average of all the original variables.
+
+%Because the principal components are unit length and orthogonal, premultiplying
+%the matrix c3 by its transpose yields the identity matrix.
+
+I = c3'*c3
+% I =
+%     1.0000   -0.0000   -0.0000
+%    -0.0000    1.0000   -0.0000
+%    -0.0000   -0.0000    1.0000
+
+
+%%
+% The Component Scores (Second Output)
+%%
+%The second output, scores, is the original data mapped
+% into the new coordinate system defined by the principal components. This output
+% is the same size as the input data matrix. A plot of the first two columns of scores shows the
+% ratings data projected onto the first two principal components. princomp computes
+% the scores to have mean zero.
+
+figure(20)
+plot(scores(:,1),scores(:,2),'+')
+xlabel('1st Principal Component')
+ylabel('2nd Principal Component')
+
+% Note the outlying points in the right half of the plot. While it is possible to create a three-dimensional plot using three
+% columns of scores, the examples in this section create
+% two-dimensional plots, which are easier to describe.The function gname is useful for
+% graphically identifying a few points in a plot like this. You can call gname with
+% a string matrix containing as many case labels as points in the plot. The
+% string matrix names works for labeling points with the
+% city names.
+
+gname(names)
+
+% Move your cursor over the plot and click once near each point in the
+% right half. As you click each point, MATLAB labels it with the proper row
+% from the names string matrix. Here is the plot after a
+% few clicks:
+
+%  When you are finished labeling points, press the Return key.The labeled cities are some of the biggest population centers in the
+% United States. They are definitely different from the remainder of the data,
+% so perhaps they should be considered separately. To remove the labeled cities
+% from the data, first identify their corresponding row numbers as follows:
+
+% 1) Close the plot window.
+% 2) Redraw the plot by enterin
+
+
+% figure(30)
+% gplot(scores(:,1),scores(:,2),'+')
+% xlabel('1st Principal Component');
+% ylabel('2nd Principal Component');
+
+% 3) Enter gname without any arguments.
+% 4) Click near the points you labeled in the preceding
+% figure. This labels the points by their row numbers, as shown in the following
+% figure.
+
+
+% Then you can create an index variable containing the row numbers of
+% all the metropolitan areas you choose.
+
+metro = [43 65 179 213 234 270 314];
+names(metro,:)
+% ans =
+%    Boston, MA                  
+%    Chicago, IL                 
+%    Los Angeles, Long Beach, CA 
+%    New York, NY                
+%    Philadelphia, PA-NJ         
+%    San Francisco, CA           
+%    Washington, DC-MD-VA        
+
+%To remove these rows from the ratings matrix, enter the following.
+
+rsubset = ratings;
+nsubset = names;
+nsubset(metro,:) = [];
+rsubset(metro,:) = [];
+size(rsubset)
+
+%ans =
+%  322     9
+
+%%
+% The Component Variances (Third Output)
+% The third output, variances, is a vector containing the variance explained
+% by the corresponding principal component. Each column of scores has
+% a sample variance equal to the corresponding element of variances.
+
+variances
+% variances =
+%     3.4083
+%     1.2140
+%     1.1415
+%     0.9209
+%     0.7533
+%     0.6306
+%     0.4930
+%     0.3180
+%     0.1204
+
+% You can easily calculate the percent of the total variability explained
+% by each principal component.
+
+percent_explained = 100*variances/sum(variances)
+% percent_explained =
+%    37.8699
+%    13.4886
+%    12.6831
+%    10.2324
+%     8.3698
+%     7.0062
+%     5.4783
+%     3.5338
+%     1.3378
+% Use the pareto function to make a scree
+% plot of the percent variability explained by each principal component.
+
+figure(35)
+pareto(percent_explained)
+xlabel('Principal Component')
+ylabel('Variance Explained (%)')
+
+% The preceding figure shows that the only clear break in the amount of
+% variance accounted for by each component is between the first and second components.
+% However, that component by itself explains less than 40% of the variance,
+% so more components are probably needed. You can see that the first three principal
+% components explain roughly two-thirds of the total variability in the standardized
+% ratings, so that might be a reasonable way to reduce the dimensions in order
+% to visualize the data.
+
+
+
+%%
+% Hotelling's T2 (Fourth Output)
+% The last output of the princomp function, t2,
+% is Hotelling's T2, a statistical
+% measure of the multivariate distance of each observation from the center of
+% the data set. This is an analytical way to find the most extreme points in
+% the data.
+
+[st2, index] = sort(t2,'descend'); % Sort in descending order.
+extreme = index(1)
+% extreme =
+%    213
+names(extreme,:)
+% ans =
+%    New York,  NY
+%It is not surprising that the ratings for New York are the furthest
+% from the average U.S. town.
+
+%%
+% Visualizing the Results of a Principal Components Analysis—The Biplot
+% 
+% You can use the biplot function to help visualize
+% both the principal component coefficients for each variable and the principal
+% component scores for each observation in a single plot. For example, the following
+% command plots the results from the principal components analysis on the cities
+% and labels each of the variables. 
+
+figure(40)
+biplot(coefs(:,1:2), 'scores',scores(:,1:2),... 
+'varlabels',categories);
+axis([-.26 1 -.51 .51]);
+
+% Each of the nine variables is represented in this plot by a vector,
+% and the direction and length of the vector indicates how each variable contributes
+% to the two principal components in the plot. For example, you have seen that
+% the first principal component, represented in this biplot by the horizontal
+% axis, has positive coefficients for all nine variables. That corresponds to
+% the nine vectors directed into the right half of the plot. You have also seen
+% that the second principal component, represented by the vertical axis, has
+% positive coefficients for the variables education, health, arts, and education,
+% and negative coefficients for the remaining five variables. That corresponds
+% to vectors directed into the top and bottom halves of the plot, respectively.
+% This indicates that this component distinguishes between cities that have
+% high values for the first set of variables and low for the second, and cities
+% that have the opposite. The variable labels in this figure are somewhat crowded. You could either
+% leave out the VarLabels parameter when making the plot,
+% or simply select and drag some of the labels to better positions using the
+% Edit Plot tool from the figure window toolbar. Each of the 329 observations is represented in this plot by a point,
+% and their locations indicate the score of each observation for the two principal
+% components in the plot. For example, points near the left edge of this plot
+% have the lowest scores for the first principal component. The points are scaled
+% to fit within the unit square, so only their relative locations may be determined
+% from the plot. You can use the Data Cursor, in the Tools menu
+% in the figure window, to identify the items in this plot. By clicking on a
+% variable (vector), you can read off that variable's coefficients for each
+% principal component. By clicking on an observation (point), you can read off
+% that observation's scores for each principal component. You can also make a biplot in three dimensions. This can be useful if
+% the first two principal coordinates do not explain enough of the variance
+% in your data. Selecting Rotate 3D in the Tools menu
+% enables you to rotate the figure to see it from different angles.
+
+figure(50)
+biplot(coefs(:,1:3), 'scores',scores(:,1:3),...  
+'obslabels',names);
+axis([-.26 1 -.51 .51 -.61 .81]);
+view([30 40]);
+
+
+toc
+
+minutes=toc/60
+%end

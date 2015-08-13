@@ -1,0 +1,107 @@
+clc; close all; clear;
+
+% the invariant is the first entry, and the two factors are the last two entries
+Expected_Value=[3 3 3]';
+Rho_F1X=.5;  Rho_F2X=.5;  Rho_F1F2=.2;   % good combinations: Rho_F1X=.8;  Rho_F2X=.8;  Rho_F1F2=.9999;
+Standard_Deviations=[1 2 1];
+NumSimulations=100;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%process inputs
+Correlations=[1 Rho_F1X Rho_F2X; Rho_F1X 1 Rho_F1F2; Rho_F2X Rho_F1F2 1];
+Scale=1;
+
+Covariance=diag(Standard_Deviations)*Correlations*diag(Standard_Deviations);
+
+ExpVal_X=Expected_Value(1);
+Covariance_XX=Covariance(1,1);
+ExpVal_F=Expected_Value(2:3);
+Covariance_FF=Covariance(2:3,2:3);
+[E,Lambda] = pcacov(Covariance_FF);
+
+D_X=sqrt(diag(Covariance_XX));
+Transformation=[inv(D_X) zeros(size(Covariance_XX,1),size(Covariance_FF,1))
+    zeros(size(Covariance_FF,1),size(Covariance_XX,1))  diag(1./sqrt(Lambda))*E' ];
+S=Transformation*Covariance*Transformation';
+C_XF=S(1,2:3);
+B=D_X*C_XF*diag(1./sqrt(Lambda))*E';
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% compute sample
+Simul_XFF=mvnrnd(Expected_Value,Covariance,NumSimulations);
+
+% compute regression plane 
+Range=[-2.5 : .5 : 2.5];
+RegressionPlane_X=zeros(length(Range),length(Range)); RegressionPlane_Y=RegressionPlane_X; RegressionPlane_Z=RegressionPlane_X;
+Plane_X=zeros(length(Range),length(Range)); Plane_Y=RegressionPlane_X; Plane_Z=RegressionPlane_X;
+MaxStdev=max( sqrt(Covariance_FF(1,1)), sqrt(Covariance_FF(2,2)));
+for i=1:length(Range)
+    for j=1:length(Range)
+        x=ExpVal_F(1)+MaxStdev*Range(i);
+        y=ExpVal_F(2)+MaxStdev*Range(j);
+        z=ExpVal_X+B*([x;y]-ExpVal_F);
+        
+        RegressionPlane_X(i,j) = x;
+        RegressionPlane_Y(i,j) = y;
+        RegressionPlane_Z(i,j) = z;
+    end
+end
+
+% compute recovered variables
+Recovered_XFF=[];
+for t=1:NumSimulations
+    X=Simul_XFF(t,2);
+    Y=Simul_XFF(t,3);
+    Z=ExpVal_X+B*([X;Y]-ExpVal_F);
+    Recovered_XFF=[Recovered_XFF
+        Z X Y ];
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure 
+h=plot3(Simul_XFF(1,2),Simul_XFF(1,3),Simul_XFF(1,1),'.','markersize',1) % trick to have a decent plot, disregard this line
+
+% plot the regression plane
+m=min(min(RegressionPlane_Z)); M=max(max(RegressionPlane_Z));
+uu= (RegressionPlane_Z-m)/(M-m);
+hold on
+hl=surf(RegressionPlane_X,RegressionPlane_Y,RegressionPlane_Z);
+set(hl,'CData',uu,'EdgeColor',[1 1 1],'meshstyle','both')
+
+% plot random simulations 
+hold on
+h=plot3(Simul_XFF(:,2),Simul_XFF(:,3),Simul_XFF(:,1),'.')
+set(h,'color','k')
+
+colormap('gray')
+caxis([-2 1])
+axis equal
+set(gca,'Position',[0.05 0.05 .9 .9])
+grid on
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figure
+h=plot3(Simul_XFF(1,2),Simul_XFF(1,3),Simul_XFF(1,1),'.','markersize',1) % trick to have a decent plot, disregard this line
+
+% plot the regression plane
+m=min(min(RegressionPlane_Z)); M=max(max(RegressionPlane_Z));
+uu= (RegressionPlane_Z-m)/(M-m);
+hold on
+hl=surf(RegressionPlane_X,RegressionPlane_Y,RegressionPlane_Z);
+set(hl,'CData',uu,'EdgeColor',[1 1 1],'meshstyle','both')
+
+% plot the recovered variables
+hold on
+h=plot3(Recovered_XFF(:,2),Recovered_XFF(:,3),Recovered_XFF(:,1),'.')
+set(h,'color','r')
+
+colormap('gray')
+caxis([-2 1])
+axis equal
+set(gca,'Position',[0.05 0.05 .9 .9])
+grid on

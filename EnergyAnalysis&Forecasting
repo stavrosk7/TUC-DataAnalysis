@@ -1,5 +1,6 @@
 %% Energy Analysis and Forecasting
 %#function dfhistbins
+
 % This demo showcases visualization and analysis (heavy statistics) for
 % forecasting energy usage based on historical data. We have access to
 % hour-by-hour utility usage for the month of January, including
